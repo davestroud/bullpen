@@ -40,6 +40,17 @@ python scripts/fetch_relievers_statcast.py \
 - Filters to pitchers with at least the given innings pitched and writes the normalized CSV format the service expects.
 - Requires network access because pybaseball pulls directly from Baseball Savant.
 
+You can also refresh the data from the running FastAPI service without a separate script:
+
+```bash
+curl -X POST "http://127.0.0.1:8003/refresh-data" \
+  -H "Content-Type: application/json" \
+  -d '{"min_innings": 8.0}'
+```
+
+- `start_date` and `end_date` are optional JSON fields (YYYY-MM-DD). They default to March 1 of the given year through today.
+- The endpoint writes to `BULLPEN_DATA`/`data/relievers.csv`, clears cached rows, and returns how many relievers were recorded.
+
 ## SABR dataset helper
 
 If you need the SABR bullpen dataset locally for LangChain/LangSmith experiments, use the helper script:
@@ -115,6 +126,17 @@ You can customize palettes/UX via `frontend/src/App.css`.
     }
   }
   ```
+- `POST /refresh-data`
+  ```jsonc
+  {
+    "start_date": "2024-03-01", // optional
+    "end_date": "2024-10-01",   // optional
+    "min_innings": 8.0           // optional, defaults to 5.0
+  }
+  ```
+  Downloads Statcast data via pybaseball, rewrites the reliever CSV at
+  `BULLPEN_DATA`/`data/relievers.csv`, clears caches, and returns a count of
+  relievers captured for the window.
 
 ## Design notes
 

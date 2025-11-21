@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import List, Literal, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from .data import DataLoadError, load_relievers
+from .data import DataLoadError, load_relievers, refresh_relievers_csv
 from .llm import generate_explanation
 from .models import Reliever
 from .scoring import BatterSide, LeverageLevel, rank_relievers
+from .statcast import StatcastError, season_start_for
 from .settings import settings
 
 app = FastAPI(
@@ -71,6 +73,36 @@ class RecommendationResponse(BaseModel):
     context: RecommendationRequest
 
 
+class RefreshRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    start_date: Optional[date] = Field(
+        default=None, description="Inclusive start date (YYYY-MM-DD)."
+    )
+    end_date: Optional[date] = Field(
+        default=None, description="Inclusive end date (YYYY-MM-DD)."
+    )
+    min_innings: float = Field(
+        default=5.0,
+        ge=0.0,
+        description="Minimum innings pitched to include a reliever.",
+    )
+
+    @model_validator(mode="after")
+    def _validate_dates(self) -> "RefreshRequest":
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            raise ValueError("start_date cannot be after end_date")
+        return self
+
+
+class RefreshResponse(BaseModel):
+    rows_written: int
+    output_path: str
+    start_date: date
+    end_date: date
+    min_innings: float
+
+
 def serialize_reliever(reliever: Reliever, score: float) -> RelieverPayload:
     return RelieverPayload(
         name=reliever.name,
@@ -98,6 +130,7 @@ def root() -> dict:
         "endpoints": {
             "health": "/healthz",
             "recommendations": "/recommendations",
+            "refresh_data": "/refresh-data",
             "docs": "/docs",
         },
     }
@@ -108,7 +141,13 @@ def recommend_body(payload: RecommendationRequest) -> RecommendationResponse:
     try:
         relievers = load_relievers(settings.data_path)
     except DataLoadError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        try:
+            refresh_relievers_csv(data_path=settings.data_path)
+            relievers = load_relievers(settings.data_path)
+        except StatcastError as refresh_exc:
+            raise HTTPException(status_code=502, detail=str(refresh_exc)) from refresh_exc
+        except Exception as refresh_exc:  # pragma: no cover - safety net
+            raise HTTPException(status_code=500, detail=str(refresh_exc)) from refresh_exc
 
     _, scored_pairs = rank_relievers(
         relievers=relievers,
@@ -132,4 +171,31 @@ def recommend_body(payload: RecommendationRequest) -> RecommendationResponse:
         top_relievers=scored_payloads,
         explanation=explanation,
         context=payload,
+    )
+
+
+@app.post("/refresh-data", response_model=RefreshResponse)
+def refresh_data(payload: RefreshRequest) -> RefreshResponse:
+    today = date.today()
+    end_date = payload.end_date or today
+    start_date = payload.start_date or season_start_for(end_date)
+
+    try:
+        rows_written = refresh_relievers_csv(
+            data_path=settings.data_path,
+            start_date=start_date,
+            end_date=end_date,
+            min_innings=payload.min_innings,
+        )
+    except StatcastError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover - safety net
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return RefreshResponse(
+        rows_written=rows_written,
+        output_path=str(settings.data_path),
+        start_date=start_date,
+        end_date=end_date,
+        min_innings=payload.min_innings,
     )
