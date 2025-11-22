@@ -262,33 +262,30 @@ function App() {
     setSimulatedRelievers(result.top_relievers.map((reliever) => ({ ...reliever })));
 
     const interval = window.setInterval(() => {
-      let frameEvent = "Waiting on a pitch";
-      let outsFromFrame = 0;
-
       setSimulatedRelievers((current) => {
         const source = current.length ? current : result.top_relievers;
         const { relievers: nextFrame, event, outsDelta } = createSimulatedFrame(
           source,
         );
-        frameEvent = event;
-        outsFromFrame = outsDelta;
+        
+        // Update gameState immediately with the computed values to avoid race condition
+        setGameState((prev) => {
+          const pitch = prev.pitch + randomBetween(1, 3);
+          const outs = prev.outs + outsDelta;
+
+          if (outs >= 3) {
+            return nextHalfInning({ ...prev, outs, pitch, lastPlay: event });
+          }
+
+          return {
+            ...prev,
+            outs,
+            pitch,
+            lastPlay: event,
+          };
+        });
+        
         return nextFrame;
-      });
-
-      setGameState((prev) => {
-        const pitch = prev.pitch + randomBetween(1, 3);
-        const outs = prev.outs + outsFromFrame;
-
-        if (outs >= 3) {
-          return nextHalfInning({ ...prev, outs, pitch, lastPlay: frameEvent });
-        }
-
-        return {
-          ...prev,
-          outs,
-          pitch,
-          lastPlay: frameEvent,
-        };
       });
     }, 2600);
 
