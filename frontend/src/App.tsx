@@ -260,7 +260,6 @@ function App() {
       return undefined;
     }
 
-    setSimulatedRelievers(result.top_relievers.map((reliever) => ({ ...reliever })));
 
     const interval = window.setInterval(() => {
       let frameEvent = "Waiting on a pitch";
