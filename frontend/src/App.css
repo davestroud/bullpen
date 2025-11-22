@@ -376,7 +376,8 @@ th {
   position: relative;
   width: 100%;
   aspect-ratio: 1.2;
-  max-width: 600px;
+  max-width: 900px;
+  min-height: 500px;
   margin: 0 auto;
   background: linear-gradient(180deg, rgba(34, 139, 34, 0.4) 0%, rgba(22, 101, 22, 0.3) 100%);
   border-radius: 8px;
@@ -697,6 +698,97 @@ th {
   color: #e8ecf5;
 }
 
+/* Players on Field */
+.player {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  z-index: 12;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+  animation: playerIdle 2s ease-in-out infinite;
+}
+
+@keyframes playerIdle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.player-pitcher {
+  bottom: 28%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 13;
+}
+
+.player-catcher {
+  bottom: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 28px;
+}
+
+.player-first-base {
+  top: 20%;
+  right: 15%;
+  transform: translate(50%, -50%);
+}
+
+.player-second-base {
+  top: 5%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.player-third-base {
+  top: 20%;
+  left: 15%;
+  transform: translate(-50%, -50%);
+}
+
+.player-shortstop {
+  top: 12%;
+  left: 35%;
+  transform: translate(-50%, -50%);
+}
+
+.player-left-field {
+  top: 25%;
+  left: 10%;
+  font-size: 20px;
+  opacity: 0.8;
+}
+
+.player-center-field {
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 22px;
+  opacity: 0.8;
+}
+
+.player-right-field {
+  top: 25%;
+  right: 10%;
+  font-size: 20px;
+  opacity: 0.8;
+}
+
+.player-batter {
+  bottom: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 20px;
+  z-index: 11;
+}
+
 .pitcher-name {
   font-size: 11px;
   font-weight: 600;
@@ -832,5 +924,25 @@ th {
 
   .baseball-field {
     max-width: 100%;
+    min-height: 400px;
+  }
+  
+  .player {
+    width: 28px;
+    height: 28px;
+    font-size: 20px;
+  }
+  
+  .player-catcher {
+    font-size: 24px;
+  }
+  
+  .player-left-field,
+  .player-right-field {
+    font-size: 18px;
+  }
+  
+  .player-center-field {
+    font-size: 20px;
   }
 }

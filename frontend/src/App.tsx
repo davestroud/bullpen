@@ -841,7 +841,22 @@ function App() {
                       </div>
                     )}
                   </div>
+                  {/* Pitcher */}
+                  <div className="player player-pitcher">⚾</div>
                 </div>
+                
+                {/* Fielders */}
+                <div className="player player-catcher">🧤</div>
+                <div className="player player-first-base">👤</div>
+                <div className="player player-second-base">👤</div>
+                <div className="player player-third-base">👤</div>
+                <div className="player player-shortstop">👤</div>
+                <div className="player player-left-field">👤</div>
+                <div className="player player-center-field">👤</div>
+                <div className="player player-right-field">👤</div>
+                
+                {/* Batter */}
+                <div className="player player-batter">🏃</div>
                 
                 {/* Base paths */}
                 <svg className="base-paths" viewBox="0 0 200 200" preserveAspectRatio="none">
