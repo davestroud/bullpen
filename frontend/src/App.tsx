@@ -147,6 +147,7 @@ const createSimulatedFrame = (
       apply: () => {
         updatedRelievers[relieverIndex].home_runs += 1;
         updatedRelievers[relieverIndex].hits += 1;
+        updatedRelievers[relieverIndex].extra_base_hits += 1;
         updatedRelievers[relieverIndex].total_bases += 4;
         updatedRelievers[relieverIndex].runs_batted_in += randomBetween(1, 3);
         updatedRelievers[relieverIndex].balls += randomBetween(0, 1);
