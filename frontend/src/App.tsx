@@ -65,6 +65,17 @@ function App() {
   const [result, setResult] = useState<RecommendationResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [liveMode, setLiveMode] = useState(true);
+  const [simulatedRelievers, setSimulatedRelievers] = useState<RelieverResult[]>(
+    [],
+  );
+  const [gameState, setGameState] = useState<GameState>({
+    inning: 1,
+    half: "Top",
+    outs: 0,
+    pitch: 1,
+    lastPlay: "First pitch coming up",
+  });
 
   const excludeList = useMemo(() => {
     return form.excludeRaw
@@ -96,6 +107,14 @@ function App() {
 
       const payload = (await response.json()) as RecommendationResponse;
       setResult(payload);
+      setGameState((prev) => ({
+        ...prev,
+        inning: 1,
+        half: "Top",
+        outs: 0,
+        pitch: 1,
+        lastPlay: "New matchup loaded — first pitch coming up",
+      }));
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Unable to fetch predictions.");
