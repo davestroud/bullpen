@@ -412,9 +412,20 @@ th {
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(ellipse at 30% 20%, rgba(34, 139, 34, 0.6) 0%, transparent 40%),
-    radial-gradient(ellipse at 70% 20%, rgba(34, 139, 34, 0.6) 0%, transparent 40%),
-    radial-gradient(ellipse at center bottom, rgba(22, 101, 22, 0.5) 0%, rgba(34, 139, 34, 0.3) 50%, transparent 80%);
+    /* Mowing pattern stripes */
+    repeating-linear-gradient(
+      90deg,
+      rgba(34, 139, 34, 0.5) 0px,
+      rgba(34, 139, 34, 0.5) 30px,
+      rgba(28, 120, 28, 0.4) 30px,
+      rgba(28, 120, 28, 0.4) 60px
+    ),
+    /* Depth variation */
+    radial-gradient(ellipse at 30% 20%, rgba(40, 160, 40, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 20%, rgba(40, 160, 40, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse at center bottom, rgba(22, 101, 22, 0.6) 0%, rgba(34, 139, 34, 0.4) 40%, rgba(28, 120, 28, 0.3) 70%, transparent 100%),
+    /* Base grass color */
+    linear-gradient(180deg, rgba(34, 139, 34, 0.5) 0%, rgba(22, 101, 22, 0.4) 100%);
 }
 
 .grass-pattern {
@@ -424,9 +435,27 @@ th {
   right: 0;
   bottom: 0;
   background-image: 
-    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(22, 101, 22, 0.1) 2px, rgba(22, 101, 22, 0.1) 4px),
-    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(22, 101, 22, 0.1) 2px, rgba(22, 101, 22, 0.1) 4px);
-  opacity: 0.3;
+    /* Fine grass texture */
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(22, 101, 22, 0.15) 1px,
+      rgba(22, 101, 22, 0.15) 2px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 1px,
+      rgba(22, 101, 22, 0.1) 1px,
+      rgba(22, 101, 22, 0.1) 2px
+    ),
+    /* Random texture spots */
+    radial-gradient(circle at 20% 30%, rgba(40, 160, 40, 0.1) 0%, transparent 20px),
+    radial-gradient(circle at 60% 50%, rgba(28, 120, 28, 0.1) 0%, transparent 25px),
+    radial-gradient(circle at 80% 70%, rgba(40, 160, 40, 0.1) 0%, transparent 15px);
+  opacity: 0.4;
+  mix-blend-mode: multiply;
 }
 
 /* Foul Lines */
@@ -469,8 +498,17 @@ th {
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(ellipse at center bottom, rgba(139, 90, 43, 0.7) 0%, rgba(120, 75, 35, 0.5) 40%, rgba(100, 60, 25, 0.3) 70%),
-    linear-gradient(180deg, rgba(139, 90, 43, 0.4) 0%, rgba(100, 60, 25, 0.6) 100%);
+    /* Raked dirt pattern */
+    repeating-linear-gradient(
+      45deg,
+      rgba(139, 90, 43, 0.6) 0px,
+      rgba(139, 90, 43, 0.6) 8px,
+      rgba(120, 75, 35, 0.5) 8px,
+      rgba(120, 75, 35, 0.5) 16px
+    ),
+    /* Depth and shadows */
+    radial-gradient(ellipse at center bottom, rgba(100, 60, 25, 0.8) 0%, rgba(120, 75, 35, 0.6) 30%, rgba(139, 90, 43, 0.5) 60%, rgba(120, 75, 35, 0.4) 100%),
+    linear-gradient(180deg, rgba(139, 90, 43, 0.5) 0%, rgba(100, 60, 25, 0.7) 100%);
   border-radius: 50% 50% 0 0;
 }
 
@@ -481,9 +519,27 @@ th {
   right: 0;
   bottom: 0;
   background-image: 
-    repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(100, 60, 25, 0.2) 4px, rgba(100, 60, 25, 0.2) 8px),
-    repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(120, 75, 35, 0.15) 4px, rgba(120, 75, 35, 0.15) 8px);
-  opacity: 0.5;
+    /* Fine grain texture */
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(100, 60, 25, 0.2) 2px,
+      rgba(100, 60, 25, 0.2) 3px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(120, 75, 35, 0.15) 2px,
+      rgba(120, 75, 35, 0.15) 3px
+    ),
+    /* Footprints and marks */
+    radial-gradient(ellipse at 40% 60%, rgba(100, 60, 25, 0.3) 0%, transparent 30px),
+    radial-gradient(ellipse at 60% 40%, rgba(100, 60, 25, 0.2) 0%, transparent 25px),
+    radial-gradient(ellipse at 30% 50%, rgba(120, 75, 35, 0.25) 0%, transparent 20px);
+  opacity: 0.6;
+  mix-blend-mode: overlay;
 }
 
 .base-paths {
@@ -519,22 +575,37 @@ th {
   position: absolute;
   width: 70px;
   height: 70px;
-  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
-  border: 4px solid rgba(200, 200, 200, 0.95);
-  border-radius: 2px;
+  background: 
+    /* Canvas texture */
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.95) 0px,
+      rgba(255, 255, 255, 0.95) 2px,
+      rgba(250, 250, 250, 0.9) 2px,
+      rgba(250, 250, 250, 0.9) 4px
+    ),
+    linear-gradient(135deg, #ffffff 0%, #f8f8f8 50%, #f0f0f0 100%);
+  border: 4px solid rgba(220, 220, 220, 0.95);
+  border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
-  font-size: 20px;
-  color: #0c0f1a;
+  font-weight: 900;
+  font-size: 22px;
+  color: #1a1a1a;
+  text-shadow: 
+    0 1px 2px rgba(255, 255, 255, 0.8),
+    0 -1px 1px rgba(0, 0, 0, 0.1);
   box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.5),
-    inset 0 2px 4px rgba(255, 255, 255, 0.6),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+    0 6px 16px rgba(0, 0, 0, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    inset 0 3px 6px rgba(255, 255, 255, 0.7),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.15),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.8);
   transition: all 0.3s ease;
   z-index: 15;
   transform-style: preserve-3d;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .base-top {
@@ -668,16 +739,29 @@ th {
   height: 90px;
   border-radius: 50%;
   background: 
-    radial-gradient(circle at 30% 30%, rgba(139, 90, 43, 0.8) 0%, rgba(120, 75, 35, 0.6) 40%, rgba(100, 60, 25, 0.4) 70%),
-    radial-gradient(circle, rgba(139, 90, 43, 0.5) 0%, rgba(100, 60, 25, 0.3) 100%);
-  border: 3px solid rgba(100, 60, 25, 0.6);
+    /* Mound texture */
+    repeating-radial-gradient(
+      circle at 30% 30%,
+      rgba(139, 90, 43, 0.7) 0px,
+      rgba(139, 90, 43, 0.7) 3px,
+      rgba(120, 75, 35, 0.6) 3px,
+      rgba(120, 75, 35, 0.6) 6px
+    ),
+    /* Light source */
+    radial-gradient(circle at 30% 30%, rgba(160, 110, 60, 0.6) 0%, rgba(139, 90, 43, 0.7) 30%, rgba(120, 75, 35, 0.6) 60%, rgba(100, 60, 25, 0.5) 100%),
+    /* Base color */
+    radial-gradient(circle, rgba(139, 90, 43, 0.6) 0%, rgba(100, 60, 25, 0.4) 100%);
+  border: 3px solid rgba(100, 60, 25, 0.7);
   box-shadow: 
-    inset 0 2px 8px rgba(0, 0, 0, 0.3),
-    0 2px 8px rgba(0, 0, 0, 0.2);
+    inset 0 3px 10px rgba(0, 0, 0, 0.4),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.2),
+    0 3px 10px rgba(0, 0, 0, 0.3),
+    0 1px 3px rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .rubber {
