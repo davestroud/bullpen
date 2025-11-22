@@ -1,4 +1,19 @@
+# Data and artifacts
 data/
 lahman_1871-2024u_csv/
 .env
 
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+.env.local
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# OS
+.DS_Store

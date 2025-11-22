@@ -25,6 +25,10 @@ npm run dev            # -> http://127.0.0.1:5173
 
 Set `VITE_API_BASE_URL` in `frontend/.env` if your API runs somewhere other than `http://127.0.0.1:8003`.
 
+The service ships with a realistic sample bullpen file at `sample_data/relievers_2024.csv`
+covering closers and setup arms from multiple MLB clubs. It is loaded automatically if
+`data/relievers.csv` is missing so the UI has authentic team context out of the box.
+
 ## Refresh reliever data from Baseball Savant (pybaseball)
 
 Use the Statcast-backed helper to regenerate `data/relievers.csv` from Baseball Savant via [pybaseball](https://pypi.org/project/pybaseball/):

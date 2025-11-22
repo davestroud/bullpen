@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from pathlib import Path
-from typing import Iterable, List
+from typing import Iterable, List, TYPE_CHECKING
 
-import pandas as pd
-from pybaseball import statcast
+if TYPE_CHECKING:  # pragma: no cover - import guard for type checkers
+    import pandas as pd
+    from pybaseball import statcast as statcast_module
 
 
 class StatcastError(RuntimeError):
@@ -24,6 +25,9 @@ HIT_EVENTS = {
 }
 WALK_EVENTS = {"walk", "intent_walk", "hit_by_pitch"}
 STRIKEOUT_EVENTS = {"strikeout", "strikeout_double_play", "strikeout_triple_play"}
+EXTRA_BASE_HIT_EVENTS = {"double", "triple", "home_run", "grand_slam"}
+HOME_RUN_EVENTS = {"home_run", "grand_slam"}
+TOTAL_BASE_VALUE = {"single": 1, "double": 2, "triple": 3, "home_run": 4, "grand_slam": 4}
 
 
 def season_start_for(day: date) -> date:
@@ -38,6 +42,16 @@ def _calc_runs(row: pd.Series) -> int:
     if row.inning_topbot == "Top":
         return int(row.post_away_score - row.away_score)
     return int(row.post_home_score - row.home_score)
+
+
+def _pitcher_team(row: pd.Series) -> str | None:
+    """Infer the pitcher's team based on inning context."""
+
+    if pd.isna(row.inning_topbot):
+        return None
+    if row.inning_topbot == "Top":
+        return row.home_team
+    return row.away_team
 
 
 def _calc_woba(frame: pd.DataFrame) -> float:
@@ -55,7 +69,16 @@ def _days_since_last_appearance(dates: Iterable[date], end_date: date) -> int:
     return (end_date - last_date).days
 
 
-def summarize_relievers(data: pd.DataFrame, *, end_date: date) -> List[dict]:
+def _require_pandas() -> "pd":
+    try:
+        import pandas as pd
+    except ModuleNotFoundError as exc:  # pragma: no cover - runtime guard
+        raise StatcastError("pandas is required to summarize relievers") from exc
+    return pd
+
+
+def summarize_relievers(data: "pd.DataFrame", *, end_date: date) -> List[dict]:
+    pd = _require_pandas()
     """
     Aggregate Statcast play-by-play data into the reliever CSV schema.
 
@@ -74,6 +97,7 @@ def summarize_relievers(data: pd.DataFrame, *, end_date: date) -> List[dict]:
     for _, frame in grouped:
         frame = frame.copy()
         frame["runs_scored"] = frame.apply(_calc_runs, axis=1)
+        frame["pitcher_team"] = frame.apply(_pitcher_team, axis=1)
 
         outs = float(frame["outs_on_play"].fillna(0).sum())
         innings = outs / 3.0 if outs else 0.0
@@ -82,6 +106,16 @@ def summarize_relievers(data: pd.DataFrame, *, end_date: date) -> List[dict]:
         walks = int(frame["events"].isin(WALK_EVENTS).sum())
         strikeouts = int(frame["events"].isin(STRIKEOUT_EVENTS).sum())
         runs = int(frame["runs_scored"].sum())
+
+        extra_base_hits = int(frame["events"].isin(EXTRA_BASE_HIT_EVENTS).sum())
+        home_runs = int(frame["events"].isin(HOME_RUN_EVENTS).sum())
+        total_bases = int(
+            frame["events"].map(TOTAL_BASE_VALUE).fillna(0).astype(int).sum()
+        )
+        runs_batted_in = int(frame.get("rbi", 0).fillna(0).sum())
+
+        balls = int((frame.get("type") == "B").sum())
+        strikes = int((frame.get("type") == "S").sum())
 
         era = round((runs * 9.0) / innings, 2) if innings else 0.0
         whip = round((walks + hits) / innings, 3) if innings else 0.0
@@ -93,6 +127,7 @@ def summarize_relievers(data: pd.DataFrame, *, end_date: date) -> List[dict]:
 
         name = frame["player_name"].dropna().mode()
         throws = frame["p_throws"].dropna().mode()
+        team = frame["pitcher_team"].dropna().mode()
 
         if name.empty or throws.empty:
             continue
@@ -102,6 +137,7 @@ def summarize_relievers(data: pd.DataFrame, *, end_date: date) -> List[dict]:
 
         relievers.append(
             {
+                "team": str(team.iloc[0]) if not team.empty else "FA",
                 "name": str(name.iloc[0]),
                 "throws": str(throws.iloc[0]).upper(),
                 "era": era,
@@ -111,6 +147,14 @@ def summarize_relievers(data: pd.DataFrame, *, end_date: date) -> List[dict]:
                 "vsL_woba": vs_left,
                 "vsR_woba": vs_right,
                 "days_rest": days_rest,
+                "hits": hits,
+                "extra_base_hits": extra_base_hits,
+                "home_runs": home_runs,
+                "total_bases": total_bases,
+                "runs_batted_in": runs_batted_in,
+                "walks": walks,
+                "balls": balls,
+                "strikes": strikes,
                 "innings_pitched": round(innings, 2),
             }
         )
@@ -120,10 +164,16 @@ def summarize_relievers(data: pd.DataFrame, *, end_date: date) -> List[dict]:
 
 def fetch_reliever_frame(
     *, start_date: date, end_date: date, min_innings: float = 5.0
-) -> pd.DataFrame:
+) -> "pd.DataFrame":
     """
     Fetch Statcast data for the given window and return the filtered reliever frame.
     """
+
+    pd = _require_pandas()
+    try:
+        from pybaseball import statcast
+    except ModuleNotFoundError as exc:  # pragma: no cover - runtime guard
+        raise StatcastError("pybaseball is required to refresh reliever data") from exc
 
     dataset = statcast(str(start_date), str(end_date))
     if dataset.empty:
@@ -148,6 +198,7 @@ def fetch_reliever_frame(
         )
 
     field_order = [
+        "team",
         "name",
         "throws",
         "era",
@@ -157,6 +208,14 @@ def fetch_reliever_frame(
         "vsL_woba",
         "vsR_woba",
         "days_rest",
+        "hits",
+        "extra_base_hits",
+        "home_runs",
+        "total_bases",
+        "runs_batted_in",
+        "walks",
+        "balls",
+        "strikes",
     ]
 
     df = pd.DataFrame(filtered, columns=field_order)
