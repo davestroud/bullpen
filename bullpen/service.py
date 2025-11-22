@@ -7,10 +7,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from .data import DataLoadError, load_relievers, refresh_relievers_csv
-from .llm import generate_explanation
+from .agents import AgentContext, run_multi_agent_recommendation
+from .data import DataLoadError, refresh_relievers_csv
 from .models import Reliever
-from .scoring import BatterSide, LeverageLevel, rank_relievers
+from .scoring import BatterSide, LeverageLevel
 from .statcast import StatcastError, season_start_for
 from .settings import settings
 
@@ -18,8 +18,8 @@ app = FastAPI(
     title="Bullpen Service",
     version="0.1.0",
     description=(
-        "Ranks relief pitchers deterministically using CSV data and "
-        "optionally generates an LLM explanation for the top recommendation."
+        "Ranks relief pitchers using a LangGraph multi-agent workflow. "
+        "Includes data loading, deterministic scoring, LLM explanation, and critic validation agents."
     ),
 )
 
@@ -79,6 +79,9 @@ class RecommendationResponse(BaseModel):
     top_relievers: List[RelieverPayload]
     explanation: Optional[str]
     context: RecommendationRequest
+    notes: Optional[List[str]] = Field(
+        default=None, description="Agent workflow notes and validation feedback."
+    )
 
 
 class RefreshRequest(BaseModel):
@@ -154,39 +157,54 @@ def root() -> dict:
 
 @app.post("/recommendations", response_model=RecommendationResponse)
 def recommend_body(payload: RecommendationRequest) -> RecommendationResponse:
-    try:
-        relievers = load_relievers(settings.data_path)
-    except DataLoadError as exc:
-        try:
-            refresh_relievers_csv(data_path=settings.data_path)
-            relievers = load_relievers(settings.data_path)
-        except StatcastError as refresh_exc:
-            raise HTTPException(status_code=502, detail=str(refresh_exc)) from refresh_exc
-        except Exception as refresh_exc:  # pragma: no cover - safety net
-            raise HTTPException(status_code=500, detail=str(refresh_exc)) from refresh_exc
+    """
+    Generate reliever recommendations using the LangGraph multi-agent workflow.
+    
+    The workflow includes:
+    - Data loading agent (with auto-refresh fallback)
+    - Scoring agent (deterministic ranking)
+    - Explanation agent (LLM-generated if API key set)
+    - Critic agent (validates explanation quality)
+    """
+    # Convert request to agent context
+    agent_context: AgentContext = {
+        "batter": payload.batter,
+        "leverage": payload.leverage,
+        "exclude": payload.exclude,
+    }
 
-    _, scored_pairs = rank_relievers(
-        relievers=relievers,
-        batter=payload.batter,
-        leverage=payload.leverage,
-        exclude=payload.exclude,
-    )
+    try:
+        # Run the multi-agent workflow
+        result = run_multi_agent_recommendation(agent_context)
+    except StatcastError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except DataLoadError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover - safety net
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    # Extract scored pairs from agent state
+    scored_pairs = result.get("scored", [])
+    if not scored_pairs:
+        raise HTTPException(
+            status_code=500, detail="Agent workflow did not produce any scored relievers."
+        )
+
+    # Serialize relievers for response
     scored_payloads = [
         serialize_reliever(reliever, score) for reliever, score in scored_pairs
     ]
 
-    explanation = None
-    if settings.openai_api_key and scored_payloads:
-        explanation = generate_explanation(
-            context=payload.model_dump(),
-            top3=[p.model_dump(by_alias=True) for p in scored_payloads],
-        )
+    # Extract explanation and notes from agent state
+    explanation = result.get("explanation")
+    notes = result.get("notes")
 
     return RecommendationResponse(
         deterministic=True,
         top_relievers=scored_payloads,
         explanation=explanation,
         context=payload,
+        notes=notes if notes else None,
     )
 
 
