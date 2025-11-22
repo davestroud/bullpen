@@ -40,6 +40,17 @@ python scripts/fetch_relievers_statcast.py \
 - Filters to pitchers with at least the given innings pitched and writes the normalized CSV format the service expects.
 - Requires network access because pybaseball pulls directly from Baseball Savant.
 
+You can also refresh the data from the running FastAPI service without a separate script:
+
+```bash
+curl -X POST "http://127.0.0.1:8003/refresh-data" \
+  -H "Content-Type: application/json" \
+  -d '{"min_innings": 8.0}'
+```
+
+- `start_date` and `end_date` are optional JSON fields (YYYY-MM-DD). They default to March 1 of the given year through today.
+- The endpoint writes to `BULLPEN_DATA`/`data/relievers.csv`, clears cached rows, and returns how many relievers were recorded.
+
 ## SABR dataset helper
 
 If you need the SABR bullpen dataset locally for LangChain/LangSmith experiments, use the helper script:
@@ -115,6 +126,17 @@ You can customize palettes/UX via `frontend/src/App.css`.
     }
   }
   ```
+- `POST /refresh-data`
+  ```jsonc
+  {
+    "start_date": "2024-03-01", // optional
+    "end_date": "2024-10-01",   // optional
+    "min_innings": 8.0           // optional, defaults to 5.0
+  }
+  ```
+  Downloads Statcast data via pybaseball, rewrites the reliever CSV at
+  `BULLPEN_DATA`/`data/relievers.csv`, clears caches, and returns a count of
+  relievers captured for the window.
 
 ## Design notes
 
@@ -122,6 +144,21 @@ You can customize palettes/UX via `frontend/src/App.css`.
 - **Transparent scoring**: see `bullpen/scoring.py` for the normalized weights on ERA, WHIP, K/BB, platoon, and rest.
 - **LLM optionality**: ranking works offline; the OpenAI client is only invoked when `OPENAI_API_KEY` is set.
 - **Extensibility hooks**: the package layout (`data`, `scoring`, `llm`, `service`) keeps room for RAG modules, tracing/metrics, and test harnesses for prompt quality.
+
+## Multi-agent experiments (LangGraph + LangSmith)
+
+The article [Building a multi-agent AI system with LangGraph and LangSmith](https://levelup.gitconnected.com/building-a-multi-agent-ai-system-with-langgraph-and-langsmith-6cb70487cd81)
+describes wiring specialized agents into a graph for planning, acting, and critique. Bullpen now exposes a similar pattern via
+`bullpen/agents.py`, which reuses the deterministic scorer, optional OpenAI explainer, and a lightweight critic node to ensure the
+LLM mentions the top reliever. You can invoke the graph from the CLI:
+
+```bash
+python scripts/run_multi_agent.py --batter L --leverage high --exclude "John Smith"
+```
+
+- Add `OPENAI_API_KEY` to enable the explanation node; omit it to see purely deterministic notes.
+- Set LangSmith env vars (`LANGCHAIN_TRACING_V2`, `LANGCHAIN_ENDPOINT`, `LANGCHAIN_API_KEY`) to trace the graph just like in the article.
+- Modify or extend `bullpen/agents.py` to introduce new agents (e.g., statcast freshness checker, matchup explainer) while keeping the scoring core unchanged.
 
 ## Repository layout
 
