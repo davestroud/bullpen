@@ -1019,7 +1019,7 @@ function App() {
                 Align the predictions with the current matchup and keep arms with
                 too little rest out of rotation.
               </p>
-              <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 500 }}>{gameState.lastPlay}</p>
+              <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 500, color: "#1a1a1a" }}>{gameState.lastPlay}</p>
             </div>
             <div className="pill subtle">{excludeList.length} exclusions</div>
           </div>
@@ -1128,7 +1128,7 @@ function App() {
             {/* Last Play */}
             <div style={{ marginBottom: "1rem", padding: "0.75rem", backgroundColor: "#f5f5f5", borderRadius: "4px" }}>
               <p className="muted" style={{ fontSize: "0.75rem", margin: "0 0 0.25rem 0" }}>Last Play</p>
-              <p style={{ margin: 0, fontSize: "0.9rem" }}>{gameState.lastPlay}</p>
+              <p style={{ margin: 0, fontSize: "0.9rem", color: "#1a1a1a", fontWeight: 500 }}>{gameState.lastPlay}</p>
             </div>
 
             {/* LLM Commentary */}
@@ -1256,7 +1256,7 @@ function App() {
               <span className="ticker-label">In-game update</span>
             </div>
             <div className="ticker-body">
-              <p className="muted">{gameState.lastPlay}</p>
+              <p style={{ color: "#1a1a1a", fontWeight: 500 }}>{gameState.lastPlay}</p>
             </div>
           </div>
 
