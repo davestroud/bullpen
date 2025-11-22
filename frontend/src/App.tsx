@@ -147,6 +147,7 @@ const createSimulatedFrame = (
       apply: () => {
         updatedRelievers[relieverIndex].home_runs += 1;
         updatedRelievers[relieverIndex].hits += 1;
+        updatedRelievers[relieverIndex].extra_base_hits += 1;
         updatedRelievers[relieverIndex].total_bases += 4;
         updatedRelievers[relieverIndex].runs_batted_in += randomBetween(1, 3);
         updatedRelievers[relieverIndex].balls += randomBetween(0, 1);
@@ -259,36 +260,32 @@ function App() {
       return undefined;
     }
 
-    setSimulatedRelievers(result.top_relievers.map((reliever) => ({ ...reliever })));
 
     const interval = window.setInterval(() => {
-      let frameEvent = "Waiting on a pitch";
-      let outsFromFrame = 0;
-
       setSimulatedRelievers((current) => {
         const source = current.length ? current : result.top_relievers;
         const { relievers: nextFrame, event, outsDelta } = createSimulatedFrame(
           source,
         );
-        frameEvent = event;
-        outsFromFrame = outsDelta;
+        
+        // Update gameState immediately with the computed values to avoid race condition
+        setGameState((prev) => {
+          const pitch = prev.pitch + randomBetween(1, 3);
+          const outs = prev.outs + outsDelta;
+
+          if (outs >= 3) {
+            return nextHalfInning({ ...prev, outs, pitch, lastPlay: event });
+          }
+
+          return {
+            ...prev,
+            outs,
+            pitch,
+            lastPlay: event,
+          };
+        });
+        
         return nextFrame;
-      });
-
-      setGameState((prev) => {
-        const pitch = prev.pitch + randomBetween(1, 3);
-        const outs = prev.outs + outsFromFrame;
-
-        if (outs >= 3) {
-          return nextHalfInning({ ...prev, outs, pitch, lastPlay: frameEvent });
-        }
-
-        return {
-          ...prev,
-          outs,
-          pitch,
-          lastPlay: frameEvent,
-        };
       });
     }, 2600);
 
