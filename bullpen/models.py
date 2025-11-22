@@ -6,6 +6,7 @@ from typing import Dict
 
 @dataclass(frozen=True)
 class Reliever:
+    team: str
     name: str
     throws: str  # "L" or "R"
     era: float
@@ -27,6 +28,7 @@ class Reliever:
     @classmethod
     def from_row(cls, row: Dict[str, str]) -> "Reliever":
         return cls(
+            team=row.get("team", "FA").strip() or "FA",
             name=row["name"],
             throws=row["throws"].strip().upper(),
             era=float(row["era"]),

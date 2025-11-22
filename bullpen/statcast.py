@@ -44,6 +44,16 @@ def _calc_runs(row: pd.Series) -> int:
     return int(row.post_home_score - row.home_score)
 
 
+def _pitcher_team(row: pd.Series) -> str | None:
+    """Infer the pitcher's team based on inning context."""
+
+    if pd.isna(row.inning_topbot):
+        return None
+    if row.inning_topbot == "Top":
+        return row.home_team
+    return row.away_team
+
+
 def _calc_woba(frame: pd.DataFrame) -> float:
     if frame.empty:
         return 0.0
@@ -87,6 +97,7 @@ def summarize_relievers(data: "pd.DataFrame", *, end_date: date) -> List[dict]:
     for _, frame in grouped:
         frame = frame.copy()
         frame["runs_scored"] = frame.apply(_calc_runs, axis=1)
+        frame["pitcher_team"] = frame.apply(_pitcher_team, axis=1)
 
         outs = float(frame["outs_on_play"].fillna(0).sum())
         innings = outs / 3.0 if outs else 0.0
@@ -116,6 +127,7 @@ def summarize_relievers(data: "pd.DataFrame", *, end_date: date) -> List[dict]:
 
         name = frame["player_name"].dropna().mode()
         throws = frame["p_throws"].dropna().mode()
+        team = frame["pitcher_team"].dropna().mode()
 
         if name.empty or throws.empty:
             continue
@@ -125,6 +137,7 @@ def summarize_relievers(data: "pd.DataFrame", *, end_date: date) -> List[dict]:
 
         relievers.append(
             {
+                "team": str(team.iloc[0]) if not team.empty else "FA",
                 "name": str(name.iloc[0]),
                 "throws": str(throws.iloc[0]).upper(),
                 "era": era,
@@ -185,6 +198,7 @@ def fetch_reliever_frame(
         )
 
     field_order = [
+        "team",
         "name",
         "throws",
         "era",
