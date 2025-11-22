@@ -982,6 +982,20 @@ function App() {
     : (result?.top_relievers ?? []);
   const displayedRelievers =
     liveMode && simulatedRelievers.length ? simulatedRelievers : relievers;
+  
+  // Force table refresh during simulation by tracking updates
+  const [tableUpdateKey, setTableUpdateKey] = useState(0);
+  
+  useEffect(() => {
+    if (liveMode && simulatedRelievers.length > 0) {
+      // Update table key whenever relievers change to trigger re-render
+      // This ensures the table updates smoothly during simulation
+      setTableUpdateKey(prev => prev + 1);
+    } else {
+      // Reset key when simulation stops
+      setTableUpdateKey(0);
+    }
+  }, [liveMode, simulatedRelievers]);
   const primaryReliever = displayedRelievers[0];
 
   return (
@@ -1216,6 +1230,9 @@ function App() {
               <h2>Matchup table</h2>
               <p className="muted">
                 Ordered recommendations blending run prevention, control, and platoon fit.
+                {liveMode && simulatedRelievers.length > 0 && (
+                  <span style={{ color: "#3b82f6", fontWeight: 500, marginLeft: "0.5rem" }}>• Auto-updating</span>
+                )}
               </p>
             </div>
             <div className="pill">{result?.deterministic === false ? "LLM augmented" : "Deterministic"}</div>
@@ -1260,7 +1277,7 @@ function App() {
             </div>
           </div>
 
-          <div className="table-wrapper">
+          <div className="table-wrapper" key={tableUpdateKey}>
             <table>
               <thead>
                 <tr>
