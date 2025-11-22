@@ -15,6 +15,37 @@ const leverageCopy = {
 type Leverage = keyof typeof leverageCopy;
 type Batter = "L" | "R";
 
+type GameState = {
+  inning: number;
+  half: "Top" | "Bottom";
+  outs: number;
+  balls: number;
+  strikes: number;
+  lastPlay: string;
+  score: {
+    home: number;
+    away: number;
+  };
+  runners: {
+    first: boolean;
+    second: boolean;
+    third: boolean;
+  };
+};
+
+type PitchOutcome =
+  | "strike"
+  | "ball"
+  | "foul"
+  | "single"
+  | "double"
+  | "triple"
+  | "home_run"
+  | "walk"
+  | "strikeout"
+  | "ground_out"
+  | "fly_out";
+
 type RelieverResult = {
   team: string;
   name: string;
@@ -341,6 +372,7 @@ function App() {
                 Align the predictions with the current matchup and keep arms with
                 too little rest out of rotation.
               </p>
+              <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 500 }}>{gameState.lastPlay}</p>
             </div>
             <div className="pill subtle">{excludeList.length} exclusions</div>
           </div>
