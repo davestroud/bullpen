@@ -642,39 +642,31 @@ th {
 
 .base {
   position: absolute;
-  width: 70px;
-  height: 70px;
-  background: 
-    /* Canvas texture */
-    repeating-linear-gradient(
-      45deg,
-      rgba(255, 255, 255, 0.95) 0px,
-      rgba(255, 255, 255, 0.95) 2px,
-      rgba(250, 250, 250, 0.9) 2px,
-      rgba(250, 250, 250, 0.9) 4px
-    ),
-    linear-gradient(135deg, #ffffff 0%, #f8f8f8 50%, #f0f0f0 100%);
-  border: 4px solid rgba(220, 220, 220, 0.95);
-  border-radius: 3px;
+  width: 80px;
+  height: 80px;
+  background: #ffffff !important;
+  border: 5px solid #cccccc !important;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 900;
-  font-size: 22px;
-  color: #1a1a1a;
+  font-size: 28px;
+  color: #000000 !important;
   text-shadow: 
-    0 1px 2px rgba(255, 255, 255, 0.8),
-    0 -1px 1px rgba(0, 0, 0, 0.1);
+    0 2px 4px rgba(255, 255, 255, 1),
+    0 -1px 2px rgba(0, 0, 0, 0.2);
   box-shadow: 
-    0 6px 16px rgba(0, 0, 0, 0.4),
-    0 2px 4px rgba(0, 0, 0, 0.2),
-    inset 0 3px 6px rgba(255, 255, 255, 0.7),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.15),
-    inset 1px 1px 2px rgba(255, 255, 255, 0.8);
+    0 8px 20px rgba(0, 0, 0, 0.6),
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    inset 0 4px 8px rgba(255, 255, 255, 0.9),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
-  z-index: 15;
+  z-index: 20 !important;
   transform-style: preserve-3d;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 .base-top {
@@ -695,22 +687,24 @@ th {
 }
 
 .base.occupied {
-  background: linear-gradient(135deg, #ffd130 0%, #f5a524 100%);
-  border-color: #ffb300;
+  background: #ffd130 !important;
+  border-color: #ffb300 !important;
   box-shadow: 
-    0 0 16px rgba(255, 209, 48, 0.6),
-    0 4px 12px rgba(0, 0, 0, 0.4),
-    inset 0 2px 4px rgba(255, 255, 255, 0.4);
+    0 0 20px rgba(255, 209, 48, 0.9),
+    0 8px 20px rgba(0, 0, 0, 0.6),
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    inset 0 4px 8px rgba(255, 255, 255, 0.6);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
 .base.all-loaded {
-  background: linear-gradient(135deg, #ff5722 0%, #e64a19 100%);
-  border-color: #ff3d00;
+  background: #ff5722 !important;
+  border-color: #ff3d00 !important;
   box-shadow: 
-    0 0 20px rgba(255, 87, 34, 0.7),
-    0 4px 12px rgba(0, 0, 0, 0.4),
-    inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    0 0 24px rgba(255, 87, 34, 0.9),
+    0 8px 20px rgba(0, 0, 0, 0.6),
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    inset 0 4px 8px rgba(255, 255, 255, 0.4);
 }
 
 @keyframes pulse {
