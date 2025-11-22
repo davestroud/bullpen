@@ -768,18 +768,36 @@ function App() {
           {/* Baseball Field Visualization */}
           <div className="baseball-field-container" style={{ marginBottom: "2rem", padding: "1.5rem", backgroundColor: "rgba(255, 255, 255, 0.02)", borderRadius: "12px", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
             <div className="baseball-field">
-              {/* Outfield */}
+              {/* Outfield Wall */}
+              <div className="outfield-wall"></div>
+              
+              {/* Outfield Grass */}
               <div className="outfield">
-                <div className="outfield-grass"></div>
+                <div className="outfield-grass">
+                  <div className="grass-pattern"></div>
+                </div>
               </div>
+              
+              {/* Foul Lines */}
+              <div className="foul-line foul-line-left"></div>
+              <div className="foul-line foul-line-right"></div>
               
               {/* Infield */}
               <div className="infield">
-                <div className="infield-dirt"></div>
+                <div className="infield-dirt">
+                  <div className="dirt-texture"></div>
+                </div>
+                
+                {/* Batter's Box */}
+                <div className="batters-box batters-box-left"></div>
+                <div className="batters-box batters-box-right"></div>
                 
                 {/* Bases */}
                 <div className={`base base-home ${gameState.runners.first && gameState.runners.second && gameState.runners.third ? 'all-loaded' : ''}`}>
-                  <div className="base-inner">HOME</div>
+                  <div className="base-inner">
+                    <div className="base-top"></div>
+                    <div className="base-label">HOME</div>
+                  </div>
                   {gameState.balls > 0 || gameState.strikes > 0 ? (
                     <div className="count-indicator">
                       {gameState.balls}-{gameState.strikes}
@@ -788,23 +806,34 @@ function App() {
                 </div>
                 
                 <div className={`base base-first ${gameState.runners.first ? 'occupied' : ''}`}>
-                  <div className="base-inner">1</div>
+                  <div className="base-inner">
+                    <div className="base-top"></div>
+                    <div className="base-label">1</div>
+                  </div>
                   {gameState.runners.first && <div className="runner">👤</div>}
                 </div>
                 
                 <div className={`base base-second ${gameState.runners.second ? 'occupied' : ''}`}>
-                  <div className="base-inner">2</div>
+                  <div className="base-inner">
+                    <div className="base-top"></div>
+                    <div className="base-label">2</div>
+                  </div>
                   {gameState.runners.second && <div className="runner">👤</div>}
                 </div>
                 
                 <div className={`base base-third ${gameState.runners.third ? 'occupied' : ''}`}>
-                  <div className="base-inner">3</div>
+                  <div className="base-inner">
+                    <div className="base-top"></div>
+                    <div className="base-label">3</div>
+                  </div>
                   {gameState.runners.third && <div className="runner">👤</div>}
                 </div>
                 
                 {/* Pitcher's Mound */}
                 <div className="pitchers-mound">
+                  <div className="mound-slope"></div>
                   <div className="mound-circle">
+                    <div className="rubber"></div>
                     {primaryReliever && (
                       <div className="pitcher-info">
                         <div className="pitcher-name">{primaryReliever.name.split(' ').pop()}</div>
@@ -816,9 +845,10 @@ function App() {
                 
                 {/* Base paths */}
                 <svg className="base-paths" viewBox="0 0 200 200" preserveAspectRatio="none">
-                  <line x1="100" y1="180" x2="160" y2="60" stroke="rgba(255, 255, 255, 0.2)" strokeWidth="2" />
-                  <line x1="160" y1="60" x2="40" y2="60" stroke="rgba(255, 255, 255, 0.2)" strokeWidth="2" />
-                  <line x1="40" y1="60" x2="100" y2="180" stroke="rgba(255, 255, 255, 0.2)" strokeWidth="2" />
+                  <path d="M 100 180 L 160 60 L 40 60 Z" fill="none" stroke="#8B5A3C" strokeWidth="3" opacity="0.6" />
+                  <line x1="100" y1="180" x2="160" y2="60" stroke="#8B5A3C" strokeWidth="2" opacity="0.4" />
+                  <line x1="160" y1="60" x2="40" y2="60" stroke="#8B5A3C" strokeWidth="2" opacity="0.4" />
+                  <line x1="40" y1="60" x2="100" y2="180" stroke="#8B5A3C" strokeWidth="2" opacity="0.4" />
                 </svg>
               </div>
               

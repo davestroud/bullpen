@@ -369,6 +369,7 @@ th {
 /* Baseball Field Styles */
 .baseball-field-container {
   position: relative;
+  background: linear-gradient(180deg, rgba(20, 50, 20, 0.3) 0%, rgba(10, 30, 10, 0.2) 100%);
 }
 
 .baseball-field {
@@ -377,15 +378,29 @@ th {
   aspect-ratio: 1.2;
   max-width: 600px;
   margin: 0 auto;
+  background: linear-gradient(180deg, rgba(34, 139, 34, 0.4) 0%, rgba(22, 101, 22, 0.3) 100%);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.outfield {
+/* Outfield Wall */
+.outfield-wall {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
+  height: 8%;
+  background: linear-gradient(180deg, rgba(200, 200, 200, 0.8) 0%, rgba(150, 150, 150, 0.6) 100%);
+  border-bottom: 3px solid rgba(100, 100, 100, 0.8);
+  z-index: 1;
+}
+
+.outfield {
+  position: absolute;
+  top: 8%;
+  left: 0;
+  right: 0;
   bottom: 0;
-  border-radius: 50% 50% 0 0;
   overflow: hidden;
 }
 
@@ -395,7 +410,44 @@ th {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(ellipse at center, rgba(34, 139, 34, 0.15) 0%, rgba(34, 139, 34, 0.05) 50%, transparent 70%);
+  background: 
+    radial-gradient(ellipse at 30% 20%, rgba(34, 139, 34, 0.6) 0%, transparent 40%),
+    radial-gradient(ellipse at 70% 20%, rgba(34, 139, 34, 0.6) 0%, transparent 40%),
+    radial-gradient(ellipse at center bottom, rgba(22, 101, 22, 0.5) 0%, rgba(34, 139, 34, 0.3) 50%, transparent 80%);
+}
+
+.grass-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(22, 101, 22, 0.1) 2px, rgba(22, 101, 22, 0.1) 4px),
+    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(22, 101, 22, 0.1) 2px, rgba(22, 101, 22, 0.1) 4px);
+  opacity: 0.3;
+}
+
+/* Foul Lines */
+.foul-line {
+  position: absolute;
+  bottom: 0;
+  width: 3px;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+  z-index: 8;
+}
+
+.foul-line-left {
+  left: 15%;
+  transform-origin: bottom left;
+  transform: rotate(-45deg);
+}
+
+.foul-line-right {
+  right: 15%;
+  transform-origin: bottom right;
+  transform: rotate(45deg);
 }
 
 .infield {
@@ -403,9 +455,10 @@ th {
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 70%;
-  height: 70%;
+  width: 65%;
+  height: 65%;
   border-radius: 50% 50% 0 0;
+  clip-path: polygon(50% 100%, 85% 15%, 15% 15%);
 }
 
 .infield-dirt {
@@ -414,8 +467,22 @@ th {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(ellipse at center bottom, rgba(139, 90, 43, 0.2) 0%, rgba(139, 90, 43, 0.1) 40%, transparent 70%);
+  background: 
+    radial-gradient(ellipse at center bottom, rgba(139, 90, 43, 0.7) 0%, rgba(120, 75, 35, 0.5) 40%, rgba(100, 60, 25, 0.3) 70%),
+    linear-gradient(180deg, rgba(139, 90, 43, 0.4) 0%, rgba(100, 60, 25, 0.6) 100%);
   border-radius: 50% 50% 0 0;
+}
+
+.dirt-texture {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(100, 60, 25, 0.2) 4px, rgba(100, 60, 25, 0.2) 8px),
+    repeating-linear-gradient(-45deg, transparent, transparent 4px, rgba(120, 75, 35, 0.15) 4px, rgba(120, 75, 35, 0.15) 8px);
+  opacity: 0.5;
 }
 
 .base-paths {
@@ -425,37 +492,84 @@ th {
   width: 100%;
   height: 100%;
   pointer-events: none;
+  z-index: 4;
+}
+
+/* Batter's Boxes */
+.batters-box {
+  position: absolute;
+  bottom: 12%;
+  width: 24px;
+  height: 48px;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  background: rgba(139, 90, 43, 0.3);
+  z-index: 7;
+}
+
+.batters-box-left {
+  left: calc(50% - 40px);
+}
+
+.batters-box-right {
+  right: calc(50% - 40px);
 }
 
 .base {
   position: absolute;
-  width: 50px;
-  height: 50px;
-  background: rgba(255, 255, 255, 0.9);
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  border-radius: 4px;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  border: 3px solid rgba(200, 200, 200, 0.8);
+  border-radius: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 14px;
+  font-weight: 800;
+  font-size: 16px;
   color: #0c0f1a;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.6),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   z-index: 10;
+  transform-style: preserve-3d;
+}
+
+.base-top {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  height: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 240, 240, 0.7) 100%);
+  border-radius: 2px 2px 0 0;
+  border-bottom: 1px solid rgba(200, 200, 200, 0.5);
+}
+
+.base-label {
+  position: relative;
+  z-index: 2;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
 .base.occupied {
-  background: rgba(255, 209, 48, 0.9);
-  border-color: #ffd130;
-  box-shadow: 0 0 12px rgba(255, 209, 48, 0.5);
+  background: linear-gradient(135deg, #ffd130 0%, #f5a524 100%);
+  border-color: #ffb300;
+  box-shadow: 
+    0 0 16px rgba(255, 209, 48, 0.6),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.4);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
 .base.all-loaded {
-  background: rgba(255, 87, 34, 0.9);
-  border-color: #ff5722;
-  box-shadow: 0 0 16px rgba(255, 87, 34, 0.6);
+  background: linear-gradient(135deg, #ff5722 0%, #e64a19 100%);
+  border-color: #ff3d00;
+  box-shadow: 
+    0 0 20px rgba(255, 87, 34, 0.7),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3);
 }
 
 @keyframes pulse {
@@ -531,22 +645,51 @@ th {
 
 .pitchers-mound {
   position: absolute;
-  bottom: 25%;
+  bottom: 28%;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 5;
+  z-index: 6;
+}
+
+.mound-slope {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140px;
+  height: 20px;
+  background: radial-gradient(ellipse at center top, rgba(139, 90, 43, 0.6) 0%, rgba(139, 90, 43, 0.3) 50%, transparent 100%);
+  border-radius: 50%;
 }
 
 .mound-circle {
-  width: 80px;
-  height: 80px;
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(139, 90, 43, 0.4) 0%, rgba(139, 90, 43, 0.2) 50%, transparent 70%);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: 
+    radial-gradient(circle at 30% 30%, rgba(139, 90, 43, 0.8) 0%, rgba(120, 75, 35, 0.6) 40%, rgba(100, 60, 25, 0.4) 70%),
+    radial-gradient(circle, rgba(139, 90, 43, 0.5) 0%, rgba(100, 60, 25, 0.3) 100%);
+  border: 3px solid rgba(100, 60, 25, 0.6);
+  box-shadow: 
+    inset 0 2px 8px rgba(0, 0, 0, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+}
+
+.rubber {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(200, 200, 200, 0.8);
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .pitcher-info {
