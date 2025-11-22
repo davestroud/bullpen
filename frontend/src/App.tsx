@@ -191,12 +191,12 @@ function App() {
   const simulatePitch = useCallback((reliever: RelieverResult, batter: Batter): PitchOutcome => {
     const woba = batter === "L" ? reliever.vsL_woba : reliever.vsR_woba;
     const random = Math.random();
-    
+
     // Base probabilities derived from wOBA and reliever stats
     const strikeoutRate = reliever.k9 / 27; // Approximate K rate
     const walkRate = reliever.bb9 / 27; // Approximate BB rate
     const hitRate = woba * 0.4; // Simplified hit probability
-    
+
     if (random < strikeoutRate) {
       return "strikeout";
     }
@@ -308,7 +308,7 @@ function App() {
       const hadThird = newRunners.third;
       const hadSecond = newRunners.second;
       const hadFirst = newRunners.first;
-      
+
       newRunners.third = hadSecond;
       newRunners.second = hadFirst;
       newRunners.first = true; // Batter goes to first
@@ -328,7 +328,7 @@ function App() {
         // End of inning
         const newHalf = prev.half === "Top" ? "Bottom" : "Top";
         const newInning = newHalf === "Top" ? prev.inning + 1 : prev.inning;
-        
+
         if (newInning > 9) {
           // Game over
           return {
@@ -560,8 +560,8 @@ function App() {
     }
   };
 
-  const relievers = liveMode && simulatedRelievers.length > 0 
-    ? simulatedRelievers 
+  const relievers = liveMode && simulatedRelievers.length > 0
+    ? simulatedRelievers
     : (result?.top_relievers ?? []);
   const primaryReliever = relievers[0];
 
@@ -638,9 +638,27 @@ function App() {
             </div>
 
             {/* Last Play */}
-            <div style={{ marginBottom: "1rem", padding: "0.75rem", backgroundColor: "#f5f5f5", borderRadius: "4px" }}>
-              <p className="muted" style={{ fontSize: "0.75rem", margin: "0 0 0.25rem 0" }}>Last Play</p>
-              <p style={{ margin: 0, fontSize: "0.9rem" }}>{gameState.lastPlay}</p>
+            <div
+              style={{
+                marginBottom: "1rem",
+                padding: "0.75rem",
+                borderRadius: "8px",
+                background: "rgba(255, 255, 255, 0.08)",
+                border: "1px solid rgba(255, 255, 255, 0.15)",
+                color: "#f1f5f9",
+              }}
+            >
+              <p
+                className="muted"
+                style={{
+                  fontSize: "0.75rem",
+                  margin: "0 0 0.25rem 0",
+                  color: "rgba(255, 255, 255, 0.7)",
+                }}
+              >
+                Last Play
+              </p>
+              <p style={{ margin: 0, fontSize: "0.95rem", fontWeight: 500 }}>{gameState.lastPlay}</p>
             </div>
 
             {/* Simulation Controls */}
