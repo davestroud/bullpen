@@ -4,3 +4,7 @@ openai>=1.40.0
 requests>=2.32.0
 pybaseball>=2.2.7
 pandas>=2.2.0
+langgraph>=0.2.29
+langchain-core>=0.2.34
+langchain-openai>=0.2.5
+langsmith>=0.1.101
