@@ -218,6 +218,7 @@ function App() {
       third: false,
     },
   });
+  const [commentary, setCommentary] = useState<string | null>(null);
   const simulationIntervalRef = useRef<number | null>(null);
 
   const excludeList = useMemo(() => {
@@ -270,6 +271,7 @@ function App() {
           third: false,
         },
       });
+      setCommentary(null);
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Unable to fetch predictions.");
@@ -414,6 +416,49 @@ function App() {
     }
 
     return { runners: newRunners, runs };
+  };
+
+  const fetchCommentary = async (
+    playDescription: string,
+    currentGameState: GameState,
+    reliever: RelieverResult
+  ): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/commentary`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          play_description: playDescription,
+          game_state: {
+            inning: currentGameState.inning,
+            half: currentGameState.half,
+            outs: currentGameState.outs,
+            balls: currentGameState.balls,
+            strikes: currentGameState.strikes,
+            score: currentGameState.score,
+            runners: currentGameState.runners,
+          },
+          reliever: {
+            name: reliever.name,
+            era: reliever.era,
+            whip: reliever.whip,
+            k9: reliever.k9,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.commentary) {
+          setCommentary(data.commentary);
+        }
+      }
+    } catch (err) {
+      // Silently fail - commentary is optional
+      console.error("Failed to fetch commentary:", err);
+    }
   };
 
   const simulateAtBat = useCallback(() => {
@@ -605,7 +650,7 @@ function App() {
           break;
       }
 
-      return {
+      const newGameState = {
         ...prev,
         balls: newBalls,
         strikes: newStrikes,
@@ -614,6 +659,11 @@ function App() {
         score: newScore,
         lastPlay: finalPlay,
       };
+
+      // Fetch LLM commentary for this play
+      void fetchCommentary(finalPlay, newGameState, activeReliever);
+
+      return newGameState;
     });
   }, [result, simulatedRelievers, form.batter, simulatePitch]);
 
@@ -643,6 +693,7 @@ function App() {
       return;
     }
     setLiveMode(true);
+    setCommentary(null);
     setGameState((prev) => ({
       ...prev,
       lastPlay: "Simulation started — first pitch coming up",
@@ -812,6 +863,14 @@ function App() {
               <p className="muted" style={{ fontSize: "0.75rem", margin: "0 0 0.25rem 0" }}>Last Play</p>
               <p style={{ margin: 0, fontSize: "0.9rem" }}>{gameState.lastPlay}</p>
             </div>
+
+            {/* LLM Commentary */}
+            {commentary && (
+              <div style={{ marginBottom: "1rem", padding: "0.75rem", backgroundColor: "rgba(255, 209, 48, 0.1)", borderRadius: "4px", border: "1px solid rgba(255, 209, 48, 0.3)" }}>
+                <p className="muted" style={{ fontSize: "0.75rem", margin: "0 0 0.25rem 0", color: "#ffd130" }}>🎙️ Commentary</p>
+                <p style={{ margin: 0, fontSize: "0.9rem", fontStyle: "italic" }}>"{commentary}"</p>
+              </div>
+            )}
 
             {/* Simulation Controls */}
             <div className="actions" style={{ display: "flex", gap: "0.5rem" }}>

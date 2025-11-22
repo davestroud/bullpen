@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from .agents import AgentContext, run_multi_agent_recommendation
 from .data import DataLoadError, refresh_relievers_csv
+from .llm import generate_game_commentary
 from .models import Reliever
 from .scoring import BatterSide, LeverageLevel
 from .statcast import StatcastError, season_start_for
@@ -151,6 +152,7 @@ def root() -> dict:
         "endpoints": {
             "health": "/healthz",
             "recommendations": "/recommendations",
+            "commentary": "/commentary",
             "refresh_data": "/refresh-data",
             "docs": "/docs",
         },
@@ -208,6 +210,37 @@ def recommend_body(payload: RecommendationRequest) -> RecommendationResponse:
         context=payload,
         notes=notes if notes else None,
     )
+
+
+class CommentaryRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    play_description: str = Field(description="Description of the play that occurred.")
+    game_state: Dict[str, Any] = Field(description="Current game state (inning, outs, count, score, runners).")
+    reliever: Dict[str, Any] = Field(description="Reliever information (name, stats).")
+
+
+class CommentaryResponse(BaseModel):
+    commentary: Optional[str] = Field(description="LLM-generated commentary about the play.")
+
+
+@app.post("/commentary", response_model=CommentaryResponse)
+def generate_commentary(payload: CommentaryRequest) -> CommentaryResponse:
+    """
+    Generate LLM commentary for a simulated game play.
+    
+    Provides color commentary in the style of a baseball broadcaster
+    based on the play description and current game situation.
+    """
+    commentary = None
+    if settings.openai_api_key:
+        commentary = generate_game_commentary(
+            play_description=payload.play_description,
+            game_state=payload.game_state,
+            reliever=payload.reliever,
+        )
+    
+    return CommentaryResponse(commentary=commentary)
 
 
 @app.post("/refresh-data", response_model=RefreshResponse)
