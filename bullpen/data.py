@@ -8,6 +8,7 @@ from typing import List
 
 from .models import Reliever
 from .statcast import fetch_reliever_frame, season_start_for, write_relievers_csv
+from .settings import settings
 
 
 class DataLoadError(RuntimeError):
@@ -16,17 +17,30 @@ class DataLoadError(RuntimeError):
 
 @lru_cache(maxsize=1)
 def load_relievers(data_path: Path) -> List[Reliever]:
-    if not data_path.exists():
-        raise DataLoadError(f"Reliever data not found at {data_path}")
+    candidates = [data_path]
+    sample_path = settings.project_root / "sample_data" / "relievers_2024.csv"
+    if sample_path not in candidates:
+        candidates.append(sample_path)
 
-    relievers: List[Reliever] = []
-    with data_path.open(newline="") as fh:
-        reader = csv.DictReader(fh)
-        for row in reader:
-            relievers.append(Reliever.from_row(row))
-    if not relievers:
-        raise DataLoadError(f"No relievers were loaded from {data_path}")
-    return relievers
+    last_error: DataLoadError | None = None
+
+    for path in candidates:
+        if not path.exists():
+            last_error = DataLoadError(f"Reliever data not found at {path}")
+            continue
+
+        relievers: List[Reliever] = []
+        with path.open(newline="") as fh:
+            reader = csv.DictReader(fh)
+            for row in reader:
+                relievers.append(Reliever.from_row(row))
+        if relievers:
+            return relievers
+        last_error = DataLoadError(f"No relievers were loaded from {path}")
+
+    if last_error:
+        raise last_error
+    raise DataLoadError("No reliever data could be loaded from any configured path")
 
 
 def refresh_relievers_csv(

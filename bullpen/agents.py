@@ -82,6 +82,7 @@ def _explanation_node(state: RecommendationState) -> RecommendationState:
         top3=[
             {
                 "name": reliever.name,
+                "team": reliever.team,
                 "throws": reliever.throws,
                 "era": reliever.era,
                 "whip": reliever.whip,

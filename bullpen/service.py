@@ -39,6 +39,7 @@ app.add_middleware(
 class RelieverPayload(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
+    team: str
     name: str
     throws: Literal["L", "R"]
     era: float
@@ -116,6 +117,7 @@ class RefreshResponse(BaseModel):
 
 def serialize_reliever(reliever: Reliever, score: float) -> RelieverPayload:
     return RelieverPayload(
+        team=reliever.team,
         name=reliever.name,
         throws=reliever.throws,
         era=reliever.era,
