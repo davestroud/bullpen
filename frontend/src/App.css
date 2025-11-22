@@ -375,9 +375,9 @@ th {
 .baseball-field {
   position: relative;
   width: 100%;
-  aspect-ratio: 1.2;
-  max-width: 900px;
-  min-height: 500px;
+  aspect-ratio: 1;
+  max-width: 1200px;
+  min-height: 750px;
   margin: 0 auto;
   background: linear-gradient(180deg, rgba(34, 139, 34, 0.4) 0%, rgba(22, 101, 22, 0.3) 100%);
   border-radius: 8px;
@@ -456,8 +456,8 @@ th {
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 65%;
-  height: 65%;
+  width: 90%;
+  height: 90%;
   border-radius: 50% 50% 0 0;
   clip-path: polygon(50% 100%, 85% 15%, 15% 15%);
 }
@@ -517,8 +517,8 @@ th {
 
 .base {
   position: absolute;
-  width: 56px;
-  height: 56px;
+  width: 80px;
+  height: 80px;
   background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
   border: 3px solid rgba(200, 200, 200, 0.8);
   border-radius: 2px;
@@ -588,26 +588,26 @@ th {
 }
 
 .base-home {
-  bottom: 10%;
+  bottom: 5%;
   left: 50%;
   transform: translateX(-50%);
 }
 
 .base-first {
-  top: 20%;
-  right: 15%;
+  top: 16%;
+  right: 10%;
   transform: none;
 }
 
 .base-second {
-  top: 5%;
+  top: -2%;
   left: 50%;
   transform: translateX(-50%);
 }
 
 .base-third {
-  top: 20%;
-  left: 15%;
+  top: 16%;
+  left: 10%;
   transform: none;
 }
 
