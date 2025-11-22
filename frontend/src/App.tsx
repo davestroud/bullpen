@@ -219,6 +219,13 @@ function App() {
     },
   });
   const [commentary, setCommentary] = useState<string | null>(null);
+  const [strategicAdvice, setStrategicAdvice] = useState<string | null>(null);
+  const [pitcherPerformance, setPitcherPerformance] = useState<{
+    pitches: number;
+    hits: number;
+    walks: number;
+    runs: number;
+  }>({ pitches: 0, hits: 0, walks: 0, runs: 0 });
   const simulationIntervalRef = useRef<number | null>(null);
 
   const excludeList = useMemo(() => {
@@ -461,6 +468,66 @@ function App() {
     }
   };
 
+  const fetchStrategicAdvice = async (
+    currentGameState: GameState,
+    currentPitcher: RelieverResult,
+    availableRelievers: RelieverResult[],
+    performance: { pitches: number; hits: number; walks: number; runs: number }
+  ): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/strategic-advice`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          game_state: {
+            inning: currentGameState.inning,
+            half: currentGameState.half,
+            outs: currentGameState.outs,
+            balls: currentGameState.balls,
+            strikes: currentGameState.strikes,
+            score: currentGameState.score,
+            runners: currentGameState.runners,
+          },
+          current_pitcher: {
+            name: currentPitcher.name,
+            era: currentPitcher.era,
+            whip: currentPitcher.whip,
+            k9: currentPitcher.k9,
+            days_rest: currentPitcher.days_rest,
+          },
+          available_relievers: availableRelievers.slice(0, 5).map(r => ({
+            name: r.name,
+            throws: r.throws,
+            era: r.era,
+            whip: r.whip,
+            k9: r.k9,
+            days_rest: r.days_rest,
+            score: r.score,
+          })),
+          recent_performance: {
+            balls: performance.pitches,
+            strikes: performance.pitches,
+            hits: performance.hits,
+            walks: performance.walks,
+            runs: performance.runs,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.advice) {
+          setStrategicAdvice(data.advice);
+        }
+      }
+    } catch (err) {
+      // Silently fail - strategic advice is optional
+      console.error("Failed to fetch strategic advice:", err);
+    }
+  };
+
   const simulateAtBat = useCallback(() => {
     if (!result || result.top_relievers.length === 0) return;
 
@@ -660,12 +727,73 @@ function App() {
         lastPlay: finalPlay,
       };
 
+      // Update pitcher performance tracking
+      let runsScoredThisPlay = 0;
+      if (outcome === "home_run") {
+        runsScoredThisPlay = hrResult.runs + 1;
+      } else if (outcome === "walk") {
+        runsScoredThisPlay = walkResult.runs;
+      } else if (outcome === "single") {
+        runsScoredThisPlay = singleResult.runs;
+      } else if (outcome === "double") {
+        runsScoredThisPlay = doubleResult.runs;
+      } else if (outcome === "ball" && newBalls >= 4) {
+        runsScoredThisPlay = bbResult.runs;
+      }
+
+      setPitcherPerformance((perf) => {
+        const newPerf = { ...perf };
+        newPerf.pitches += 1;
+        
+        if (outcome === "single" || outcome === "double" || outcome === "home_run") {
+          newPerf.hits += 1;
+        }
+        if (outcome === "walk" || (outcome === "ball" && newBalls >= 4)) {
+          newPerf.walks += 1;
+        }
+        
+        // Track runs allowed (only for home team pitcher)
+        if (runsScoredThisPlay > 0 && prev.half === "Bottom") {
+          newPerf.runs += runsScoredThisPlay;
+        }
+
+        return newPerf;
+      });
+
       // Fetch LLM commentary for this play
       void fetchCommentary(finalPlay, newGameState, activeReliever);
 
+      // Fetch strategic advice periodically (every 3 pitches or at end of inning or high leverage)
+      // We'll use a ref or state to track pitch count for advice timing
+      setPitcherPerformance((perf) => {
+        const updatedPerf = {
+          ...perf,
+          pitches: perf.pitches + 1,
+          hits: perf.hits + (outcome === "single" || outcome === "double" || outcome === "home_run" ? 1 : 0),
+          walks: perf.walks + (outcome === "walk" || (outcome === "ball" && newBalls >= 4) ? 1 : 0),
+          runs: perf.runs + (runsScoredThisPlay > 0 && prev.half === "Bottom" ? runsScoredThisPlay : 0),
+        };
+        
+        const shouldFetchAdvice = 
+          (newOuts === 0 && updatedPerf.pitches % 3 === 0) ||
+          newOuts >= 3 ||
+          (newGameState.inning >= 7 && Math.abs(newScore.away - newScore.home) <= 2);
+
+        if (shouldFetchAdvice && result) {
+          void fetchStrategicAdvice(
+            newGameState,
+            activeReliever,
+            result.top_relievers,
+            updatedPerf
+          );
+        }
+        
+        return updatedPerf;
+      });
+
       return newGameState;
     });
-  }, [result, simulatedRelievers, form.batter, simulatePitch]);
+  }, [result, simulatedRelievers, form.batter, simulatePitch, fetchCommentary, fetchStrategicAdvice]);
 
   // Auto-progression timer
   useEffect(() => {
@@ -694,6 +822,8 @@ function App() {
     }
     setLiveMode(true);
     setCommentary(null);
+    setStrategicAdvice(null);
+    setPitcherPerformance({ pitches: 0, hits: 0, walks: 0, runs: 0 });
     setGameState((prev) => ({
       ...prev,
       lastPlay: "Simulation started — first pitch coming up",
@@ -869,6 +999,19 @@ function App() {
               <div style={{ marginBottom: "1rem", padding: "0.75rem", backgroundColor: "rgba(255, 209, 48, 0.1)", borderRadius: "4px", border: "1px solid rgba(255, 209, 48, 0.3)" }}>
                 <p className="muted" style={{ fontSize: "0.75rem", margin: "0 0 0.25rem 0", color: "#ffd130" }}>🎙️ Commentary</p>
                 <p style={{ margin: 0, fontSize: "0.9rem", fontStyle: "italic" }}>"{commentary}"</p>
+              </div>
+            )}
+
+            {/* Strategic Advice */}
+            {strategicAdvice && (
+              <div style={{ marginBottom: "1rem", padding: "0.75rem", backgroundColor: "rgba(59, 130, 246, 0.15)", borderRadius: "4px", border: "1px solid rgba(59, 130, 246, 0.3)" }}>
+                <p className="muted" style={{ fontSize: "0.75rem", margin: "0 0 0.25rem 0", color: "#3b82f6", fontWeight: 600 }}>⚡ Strategic Decision Agent</p>
+                <p style={{ margin: 0, fontSize: "0.9rem" }}>{strategicAdvice}</p>
+                {pitcherPerformance.pitches > 0 && (
+                  <div style={{ marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px solid rgba(59, 130, 246, 0.2)", fontSize: "0.75rem", color: "#94a3b8" }}>
+                    Pitcher Performance: {pitcherPerformance.pitches} pitches, {pitcherPerformance.hits} H, {pitcherPerformance.walks} BB, {pitcherPerformance.runs} R
+                  </div>
+                )}
               </div>
             )}
 

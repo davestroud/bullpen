@@ -9,18 +9,19 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from .agents import AgentContext, run_multi_agent_recommendation
 from .data import DataLoadError, refresh_relievers_csv
-from .llm import generate_game_commentary
+from .llm import generate_game_commentary, generate_strategic_advice
 from .models import Reliever
 from .scoring import BatterSide, LeverageLevel
-from .statcast import StatcastError, season_start_for
 from .settings import settings
+from .statcast import StatcastError, season_start_for
 
 app = FastAPI(
     title="Bullpen Service",
     version="0.1.0",
     description=(
         "Ranks relief pitchers using a LangGraph multi-agent workflow. "
-        "Includes data loading, deterministic scoring, LLM explanation, and critic validation agents."
+        "Includes data loading, deterministic scoring, LLM explanation, and critic validation agents. "
+        "Features Strategic Decision Agent for real-time bullpen management recommendations."
     ),
 )
 
@@ -153,6 +154,7 @@ def root() -> dict:
             "health": "/healthz",
             "recommendations": "/recommendations",
             "commentary": "/commentary",
+            "strategic_advice": "/strategic-advice",
             "refresh_data": "/refresh-data",
             "docs": "/docs",
         },
@@ -241,6 +243,56 @@ def generate_commentary(payload: CommentaryRequest) -> CommentaryResponse:
         )
     
     return CommentaryResponse(commentary=commentary)
+
+
+class StrategicAdviceRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    game_state: Dict[str, Any] = Field(description="Current game state (inning, outs, score, runners).")
+    current_pitcher: Dict[str, Any] = Field(description="Current pitcher information and stats.")
+    available_relievers: List[Dict[str, Any]] = Field(description="Available relievers with their stats.")
+    recent_performance: Dict[str, Any] = Field(description="Recent performance metrics (pitches, hits, walks).")
+
+
+class StrategicAdviceResponse(BaseModel):
+    advice: Optional[str] = Field(description="Strategic advice from the bullpen coach agent.")
+    recommendation: Optional[str] = Field(description="Specific recommendation (e.g., 'pull_pitcher', 'warm_up_X').")
+
+
+@app.post("/strategic-advice", response_model=StrategicAdviceResponse)
+def get_strategic_advice(payload: StrategicAdviceRequest) -> StrategicAdviceResponse:
+    """
+    Generate strategic advice from the Strategic Decision Agent.
+    
+    Analyzes game situation, pitcher fatigue, and available relievers
+    to provide actionable bullpen management recommendations.
+    """
+    advice = None
+    recommendation = None
+    
+    if settings.openai_api_key:
+        advice = generate_strategic_advice(
+            game_state=payload.game_state,
+            current_pitcher=payload.current_pitcher,
+            available_relievers=payload.available_relievers,
+            recent_performance=payload.recent_performance,
+        )
+        
+        # Extract recommendation from advice if possible
+        if advice:
+            advice_lower = advice.lower()
+            if "warm up" in advice_lower or "warm-up" in advice_lower:
+                # Try to extract reliever name
+                for reliever in payload.available_relievers:
+                    if reliever.get("name", "").lower() in advice_lower:
+                        recommendation = f"warm_up_{reliever.get('name', '').replace(' ', '_')}"
+                        break
+            elif "pull" in advice_lower or "remove" in advice_lower or "replace" in advice_lower:
+                recommendation = "consider_pulling_pitcher"
+            elif "stick" in advice_lower or "keep" in advice_lower or "continue" in advice_lower:
+                recommendation = "keep_current_pitcher"
+    
+    return StrategicAdviceResponse(advice=advice, recommendation=recommendation)
 
 
 @app.post("/refresh-data", response_model=RefreshResponse)
