@@ -49,6 +49,14 @@ class RelieverPayload(BaseModel):
     vs_right_woba: float = Field(alias="vsR_woba")
     days_rest: int
     score: float
+    hits: int
+    extra_base_hits: int
+    home_runs: int
+    total_bases: int
+    runs_batted_in: int
+    walks: int
+    balls: int
+    strikes: int
 
 
 class RecommendationRequest(BaseModel):
@@ -115,6 +123,14 @@ def serialize_reliever(reliever: Reliever, score: float) -> RelieverPayload:
         vsR_woba=reliever.vs_right_woba,
         days_rest=reliever.days_rest,
         score=score,
+        hits=reliever.hits,
+        extra_base_hits=reliever.extra_base_hits,
+        home_runs=reliever.home_runs,
+        total_bases=reliever.total_bases,
+        runs_batted_in=reliever.runs_batted_in,
+        walks=reliever.walks,
+        balls=reliever.balls,
+        strikes=reliever.strikes,
     )
 
 
