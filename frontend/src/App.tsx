@@ -220,6 +220,9 @@ function App() {
   });
   const [commentary, setCommentary] = useState<string | null>(null);
   const [strategicAdvice, setStrategicAdvice] = useState<string | null>(null);
+  const [matchupAnalysis, setMatchupAnalysis] = useState<string | null>(null);
+  const [situationalStrategy, setSituationalStrategy] = useState<string | null>(null);
+  const [injuryRisk, setInjuryRisk] = useState<string | null>(null);
   const [pitcherPerformance, setPitcherPerformance] = useState<{
     pitches: number;
     hits: number;
@@ -528,6 +531,131 @@ function App() {
     }
   };
 
+  const fetchMatchupAnalysis = async (
+    batterHandedness: string,
+    currentGameState: GameState,
+    currentPitcher: RelieverResult,
+    availableRelievers: RelieverResult[]
+  ): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/matchup-analysis`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          batter_handedness: batterHandedness,
+          current_pitcher: {
+            name: currentPitcher.name,
+            throws: currentPitcher.throws,
+            vsL_woba: currentPitcher.vsL_woba,
+            vsR_woba: currentPitcher.vsR_woba,
+          },
+          available_relievers: availableRelievers.slice(0, 5).map(r => ({
+            name: r.name,
+            throws: r.throws,
+            vsL_woba: r.vsL_woba,
+            vsR_woba: r.vsR_woba,
+            era: r.era,
+            score: r.score,
+          })),
+          game_state: {
+            inning: currentGameState.inning,
+            outs: currentGameState.outs,
+            runners: currentGameState.runners,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.analysis) {
+          setMatchupAnalysis(data.analysis);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch matchup analysis:", err);
+    }
+  };
+
+  const fetchSituationalStrategy = async (
+    currentGameState: GameState,
+    availableRelievers: RelieverResult[]
+  ): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/situational-strategy`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          game_state: {
+            inning: currentGameState.inning,
+            half: currentGameState.half,
+            outs: currentGameState.outs,
+            score: currentGameState.score,
+            runners: currentGameState.runners,
+          },
+          available_relievers: availableRelievers.slice(0, 5).map(r => ({
+            name: r.name,
+            era: r.era,
+            whip: r.whip,
+            k9: r.k9,
+            days_rest: r.days_rest,
+            score: r.score,
+          })),
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.strategy) {
+          setSituationalStrategy(data.strategy);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch situational strategy:", err);
+    }
+  };
+
+  const fetchInjuryRisk = async (
+    currentPitcher: RelieverResult,
+    performance: { pitches: number; hits: number; walks: number; runs: number }
+  ): Promise<void> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/injury-risk`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          current_pitcher: {
+            name: currentPitcher.name,
+            days_rest: currentPitcher.days_rest,
+          },
+          recent_performance: {
+            pitches: performance.pitches,
+            hits: performance.hits,
+            walks: performance.walks,
+            runs: performance.runs,
+          },
+          usage_history: {
+            consecutive_days: currentPitcher.days_rest === 0 ? 1 : 0,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.assessment) {
+          setInjuryRisk(data.assessment);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch injury risk:", err);
+    }
+  };
+
   const simulateAtBat = useCallback(() => {
     if (!result || result.top_relievers.length === 0) return;
 
@@ -741,30 +869,7 @@ function App() {
         runsScoredThisPlay = bbResult.runs;
       }
 
-      setPitcherPerformance((perf) => {
-        const newPerf = { ...perf };
-        newPerf.pitches += 1;
-        
-        if (outcome === "single" || outcome === "double" || outcome === "home_run") {
-          newPerf.hits += 1;
-        }
-        if (outcome === "walk" || (outcome === "ball" && newBalls >= 4)) {
-          newPerf.walks += 1;
-        }
-        
-        // Track runs allowed (only for home team pitcher)
-        if (runsScoredThisPlay > 0 && prev.half === "Bottom") {
-          newPerf.runs += runsScoredThisPlay;
-        }
-
-        return newPerf;
-      });
-
-      // Fetch LLM commentary for this play
-      void fetchCommentary(finalPlay, newGameState, activeReliever);
-
-      // Fetch strategic advice periodically (every 3 pitches or at end of inning or high leverage)
-      // We'll use a ref or state to track pitch count for advice timing
+      // Update pitcher performance tracking and fetch agent recommendations
       setPitcherPerformance((perf) => {
         const updatedPerf = {
           ...perf,
@@ -787,13 +892,42 @@ function App() {
             updatedPerf
           );
         }
+
+        // Fetch matchup analysis when count resets (new batter)
+        if ((newBalls === 0 && newStrikes === 0) && result) {
+          void fetchMatchupAnalysis(
+            form.batter,
+            newGameState,
+            activeReliever,
+            result.top_relievers
+          );
+        }
+
+        // Fetch situational strategy at end of inning or high leverage
+        if ((newOuts >= 3 || (newGameState.inning >= 7 && Math.abs(newScore.away - newScore.home) <= 2)) && result) {
+          void fetchSituationalStrategy(
+            newGameState,
+            result.top_relievers
+          );
+        }
+
+        // Fetch injury risk assessment every 5 pitches or when showing fatigue
+        if ((updatedPerf.pitches % 5 === 0 || updatedPerf.walks >= 2 || updatedPerf.hits >= 3) && result) {
+          void fetchInjuryRisk(
+            activeReliever,
+            updatedPerf
+          );
+        }
         
         return updatedPerf;
       });
 
+      // Fetch LLM commentary for this play
+      void fetchCommentary(finalPlay, newGameState, activeReliever);
+
       return newGameState;
     });
-  }, [result, simulatedRelievers, form.batter, simulatePitch, fetchCommentary, fetchStrategicAdvice]);
+  }, [result, simulatedRelievers, form.batter, simulatePitch, fetchCommentary, fetchStrategicAdvice, fetchMatchupAnalysis, fetchSituationalStrategy, fetchInjuryRisk]);
 
   // Auto-progression timer
   useEffect(() => {
@@ -823,6 +957,9 @@ function App() {
     setLiveMode(true);
     setCommentary(null);
     setStrategicAdvice(null);
+    setMatchupAnalysis(null);
+    setSituationalStrategy(null);
+    setInjuryRisk(null);
     setPitcherPerformance({ pitches: 0, hits: 0, walks: 0, runs: 0 });
     setGameState((prev) => ({
       ...prev,
@@ -1012,6 +1149,30 @@ function App() {
                     Pitcher Performance: {pitcherPerformance.pitches} pitches, {pitcherPerformance.hits} H, {pitcherPerformance.walks} BB, {pitcherPerformance.runs} R
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Matchup Analysis */}
+            {matchupAnalysis && (
+              <div style={{ marginBottom: "1rem", padding: "0.75rem", backgroundColor: "rgba(139, 92, 246, 0.15)", borderRadius: "4px", border: "1px solid rgba(139, 92, 246, 0.3)" }}>
+                <p className="muted" style={{ fontSize: "0.75rem", margin: "0 0 0.25rem 0", color: "#8b5cf6", fontWeight: 600 }}>🎯 Matchup Analysis Agent</p>
+                <p style={{ margin: 0, fontSize: "0.9rem" }}>{matchupAnalysis}</p>
+              </div>
+            )}
+
+            {/* Situational Strategy */}
+            {situationalStrategy && (
+              <div style={{ marginBottom: "1rem", padding: "0.75rem", backgroundColor: "rgba(236, 72, 153, 0.15)", borderRadius: "4px", border: "1px solid rgba(236, 72, 153, 0.3)" }}>
+                <p className="muted" style={{ fontSize: "0.75rem", margin: "0 0 0.25rem 0", color: "#ec4899", fontWeight: 600 }}>📊 Situational Strategy Agent</p>
+                <p style={{ margin: 0, fontSize: "0.9rem" }}>{situationalStrategy}</p>
+              </div>
+            )}
+
+            {/* Injury Risk Assessment */}
+            {injuryRisk && (
+              <div style={{ marginBottom: "1rem", padding: "0.75rem", backgroundColor: "rgba(239, 68, 68, 0.15)", borderRadius: "4px", border: "1px solid rgba(239, 68, 68, 0.3)" }}>
+                <p className="muted" style={{ fontSize: "0.75rem", margin: "0 0 0.25rem 0", color: "#ef4444", fontWeight: 600 }}>🏥 Injury Risk Assessment Agent</p>
+                <p style={{ margin: 0, fontSize: "0.9rem" }}>{injuryRisk}</p>
               </div>
             )}
 

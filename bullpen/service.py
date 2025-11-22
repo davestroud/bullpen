@@ -9,7 +9,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from .agents import AgentContext, run_multi_agent_recommendation
 from .data import DataLoadError, refresh_relievers_csv
-from .llm import generate_game_commentary, generate_strategic_advice
+from .llm import (
+    generate_game_commentary,
+    generate_strategic_advice,
+    generate_matchup_analysis,
+    generate_situational_strategy,
+    generate_injury_risk_assessment,
+)
 from .models import Reliever
 from .scoring import BatterSide, LeverageLevel
 from .settings import settings
@@ -21,7 +27,8 @@ app = FastAPI(
     description=(
         "Ranks relief pitchers using a LangGraph multi-agent workflow. "
         "Includes data loading, deterministic scoring, LLM explanation, and critic validation agents. "
-        "Features Strategic Decision Agent for real-time bullpen management recommendations."
+        "Features multiple specialist agents: Strategic Decision, Matchup Analysis, "
+        "Situational Strategy, and Injury Risk Assessment."
     ),
 )
 
@@ -155,6 +162,9 @@ def root() -> dict:
             "recommendations": "/recommendations",
             "commentary": "/commentary",
             "strategic_advice": "/strategic-advice",
+            "matchup_analysis": "/matchup-analysis",
+            "situational_strategy": "/situational-strategy",
+            "injury_risk": "/injury-risk",
             "refresh_data": "/refresh-data",
             "docs": "/docs",
         },
@@ -293,6 +303,102 @@ def get_strategic_advice(payload: StrategicAdviceRequest) -> StrategicAdviceResp
                 recommendation = "keep_current_pitcher"
     
     return StrategicAdviceResponse(advice=advice, recommendation=recommendation)
+
+
+class MatchupAnalysisRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    batter_handedness: str = Field(description="Batter handedness (L or R).")
+    current_pitcher: Dict[str, Any] = Field(description="Current pitcher information and stats.")
+    available_relievers: List[Dict[str, Any]] = Field(description="Available relievers with their stats.")
+    game_state: Dict[str, Any] = Field(description="Current game state.")
+
+
+class MatchupAnalysisResponse(BaseModel):
+    analysis: Optional[str] = Field(description="Matchup analysis from the specialist agent.")
+
+
+@app.post("/matchup-analysis", response_model=MatchupAnalysisResponse)
+def get_matchup_analysis(payload: MatchupAnalysisRequest) -> MatchupAnalysisResponse:
+    """
+    Generate matchup analysis from the Matchup Analysis Agent.
+    
+    Analyzes batter-pitcher platoon advantages and recommends optimal reliever choices
+    based on handedness matchups and wOBA splits.
+    """
+    analysis = None
+    
+    if settings.openai_api_key:
+        analysis = generate_matchup_analysis(
+            batter_handedness=payload.batter_handedness,
+            current_pitcher=payload.current_pitcher,
+            available_relievers=payload.available_relievers,
+            game_state=payload.game_state,
+        )
+    
+    return MatchupAnalysisResponse(analysis=analysis)
+
+
+class SituationalStrategyRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    game_state: Dict[str, Any] = Field(description="Current game state (inning, outs, score, runners).")
+    available_relievers: List[Dict[str, Any]] = Field(description="Available relievers with their stats.")
+
+
+class SituationalStrategyResponse(BaseModel):
+    strategy: Optional[str] = Field(description="Situational strategy recommendation from the specialist agent.")
+
+
+@app.post("/situational-strategy", response_model=SituationalStrategyResponse)
+def get_situational_strategy(payload: SituationalStrategyRequest) -> SituationalStrategyResponse:
+    """
+    Generate situational strategy from the Situational Strategy Agent.
+    
+    Provides context-specific recommendations for save situations, hold situations,
+    high leverage moments, and other game contexts.
+    """
+    strategy = None
+    
+    if settings.openai_api_key:
+        strategy = generate_situational_strategy(
+            game_state=payload.game_state,
+            available_relievers=payload.available_relievers,
+        )
+    
+    return SituationalStrategyResponse(strategy=strategy)
+
+
+class InjuryRiskRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    current_pitcher: Dict[str, Any] = Field(description="Current pitcher information.")
+    recent_performance: Dict[str, Any] = Field(description="Recent performance metrics (pitches, hits, walks).")
+    usage_history: Dict[str, Any] = Field(description="Usage history (consecutive days, etc.).")
+
+
+class InjuryRiskResponse(BaseModel):
+    assessment: Optional[str] = Field(description="Injury risk assessment from the sports medicine specialist.")
+
+
+@app.post("/injury-risk", response_model=InjuryRiskResponse)
+def get_injury_risk_assessment(payload: InjuryRiskRequest) -> InjuryRiskResponse:
+    """
+    Generate injury risk assessment from the Injury Risk Assessment Agent.
+    
+    Analyzes pitcher workload, fatigue indicators, and usage patterns to assess
+    injury risk and provide health recommendations.
+    """
+    assessment = None
+    
+    if settings.openai_api_key:
+        assessment = generate_injury_risk_assessment(
+            current_pitcher=payload.current_pitcher,
+            recent_performance=payload.recent_performance,
+            usage_history=payload.usage_history,
+        )
+    
+    return InjuryRiskResponse(assessment=assessment)
 
 
 @app.post("/refresh-data", response_model=RefreshResponse)
