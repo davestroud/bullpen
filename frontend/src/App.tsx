@@ -53,130 +53,8 @@ type FormState = {
   excludeRaw: string;
 };
 
-type GameState = {
-  inning: number;
-  half: "Top" | "Bottom";
-  outs: number;
-  pitch: number;
-  lastPlay: string;
-};
-
-const randomBetween = (min: number, max: number) =>
-  Math.floor(Math.random() * (max - min + 1)) + min;
-
-const nextHalfInning = (state: GameState): GameState => {
-  const nextHalf = state.half === "Top" ? "Bottom" : "Top";
-  const nextInning = nextHalf === "Top" ? state.inning + 1 : state.inning;
-
-  return {
-    inning: nextInning,
-    half: nextHalf,
-    outs: 0,
-    pitch: state.pitch,
-    lastPlay: `${nextHalf} of the ${nextInning} — new pitcher warming up`,
-  };
-};
-
 const formatNumber = (value: number): string =>
   value.toLocaleString("en-US", { maximumFractionDigits: 0 });
-
-const createSimulatedFrame = (
-  baseline: RelieverResult[],
-): { relievers: RelieverResult[]; event: string; outsDelta: number } => {
-  if (!baseline.length) {
-    return { relievers: baseline, event: "Awaiting bullpen call", outsDelta: 0 };
-  }
-
-  const relieverIndex = randomBetween(0, Math.min(baseline.length - 1, 4));
-  const reliever = baseline[relieverIndex];
-  const updatedRelievers = baseline.map((entry) => ({ ...entry }));
-
-  const outcomes = [
-    {
-      label: `${reliever.name} paints the corner for strike three`,
-      apply: () => {
-        updatedRelievers[relieverIndex].strikes += randomBetween(2, 3);
-        updatedRelievers[relieverIndex].score = Math.max(
-          0,
-          reliever.score + randomBetween(-2, 0) / 100,
-        );
-        return 1;
-      },
-    },
-    {
-      label: `${reliever.name} issues a free pass`,
-      apply: () => {
-        updatedRelievers[relieverIndex].balls += randomBetween(2, 4);
-        updatedRelievers[relieverIndex].walks += 1;
-        updatedRelievers[relieverIndex].score = Math.max(
-          0,
-          reliever.score + randomBetween(0, 3) / 100,
-        );
-        return 0;
-      },
-    },
-    {
-      label: `${reliever.name} surrenders a sharp single`,
-      apply: () => {
-        updatedRelievers[relieverIndex].hits += 1;
-        updatedRelievers[relieverIndex].total_bases += 1;
-        updatedRelievers[relieverIndex].runs_batted_in += randomBetween(0, 1);
-        updatedRelievers[relieverIndex].balls += randomBetween(0, 1);
-        updatedRelievers[relieverIndex].strikes += randomBetween(1, 2);
-        updatedRelievers[relieverIndex].score = Math.max(
-          0,
-          reliever.score + randomBetween(0, 2) / 100,
-        );
-        return 0;
-      },
-    },
-    {
-      label: `${reliever.name} induces a groundout to short`,
-      apply: () => {
-        updatedRelievers[relieverIndex].strikes += randomBetween(1, 2);
-        updatedRelievers[relieverIndex].balls += randomBetween(0, 1);
-        updatedRelievers[relieverIndex].score = Math.max(
-          0,
-          reliever.score + randomBetween(-1, 1) / 100,
-        );
-        return 1;
-      },
-    },
-    {
-      label: `${reliever.name} gives up a towering home run`,
-      apply: () => {
-        updatedRelievers[relieverIndex].home_runs += 1;
-        updatedRelievers[relieverIndex].hits += 1;
-        updatedRelievers[relieverIndex].extra_base_hits += 1;
-        updatedRelievers[relieverIndex].total_bases += 4;
-        updatedRelievers[relieverIndex].runs_batted_in += randomBetween(1, 3);
-        updatedRelievers[relieverIndex].balls += randomBetween(0, 1);
-        updatedRelievers[relieverIndex].score = Math.max(
-          0,
-          reliever.score + randomBetween(2, 4) / 100,
-        );
-        return 0;
-      },
-    },
-    {
-      label: `${reliever.name} freezes the batter looking`,
-      apply: () => {
-        updatedRelievers[relieverIndex].strikes += 2;
-        updatedRelievers[relieverIndex].balls += randomBetween(0, 1);
-        updatedRelievers[relieverIndex].score = Math.max(
-          0,
-          reliever.score + randomBetween(-2, 1) / 100,
-        );
-        return 1;
-      },
-    },
-  ];
-
-  const outcome = outcomes[randomBetween(0, outcomes.length - 1)];
-  const outsDelta = outcome.apply();
-
-  return { relievers: updatedRelievers, event: outcome.label, outsDelta };
-};
 
 function App() {
   const [form, setForm] = useState<FormState>({
@@ -250,57 +128,13 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (!liveMode) {
-      setSimulatedRelievers([]);
-      return undefined;
-    }
-
-    if (!result?.top_relievers.length) {
-      return undefined;
-    }
-
-
-    const interval = window.setInterval(() => {
-      setSimulatedRelievers((current) => {
-        const source = current.length ? current : result.top_relievers;
-        const { relievers: nextFrame, event, outsDelta } = createSimulatedFrame(
-          source,
-        );
-        
-        // Update gameState immediately with the computed values to avoid race condition
-        setGameState((prev) => {
-          const pitch = prev.pitch + randomBetween(1, 3);
-          const outs = prev.outs + outsDelta;
-
-          if (outs >= 3) {
-            return nextHalfInning({ ...prev, outs, pitch, lastPlay: event });
-          }
-
-          return {
-            ...prev,
-            outs,
-            pitch,
-            lastPlay: event,
-          };
-        });
-        
-        return nextFrame;
-      });
-    }, 2600);
-
-    return () => window.clearInterval(interval);
-  }, [liveMode, result?.top_relievers]);
-
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void runRecommendations();
   };
 
   const relievers = result?.top_relievers ?? [];
-  const displayedRelievers =
-    liveMode && simulatedRelievers.length ? simulatedRelievers : relievers;
-  const primaryReliever = displayedRelievers[0];
+  const primaryReliever = relievers[0];
 
   return (
     <div className="app-shell">
@@ -312,15 +146,6 @@ function App() {
           <span className="tab active">Predictions</span>
         </nav>
         <div className="top-meta">
-          <button
-            type="button"
-            className={`pill subtle live-toggle ${liveMode ? "on" : "off"}`}
-            onClick={() => setLiveMode((prev) => !prev)}
-            aria-pressed={liveMode}
-          >
-            <span className="pulse" aria-hidden />
-            {liveMode ? "Live sim on" : "Live sim paused"}
-          </button>
           <span className="pill subtle">API {API_BASE_URL}</span>
           <span className="pill subtle">{leverageCopy[form.leverage]} leverage</span>
           <span className="pill">{form.batter === "L" ? "Lefty" : "Righty"} lineup</span>
@@ -421,13 +246,6 @@ function App() {
               </div>
               <div className="pill ghost">Player</div>
             </div>
-            <div className="live-readout" role="status" aria-live="polite">
-              <div className="pill ghost small">Pitch #{formatNumber(gameState.pitch)}</div>
-              <div className="pill ghost small">{gameState.outs} out{gameState.outs === 1 ? "" : "s"}</div>
-              <div className="pill subtle small">
-                {gameState.half} {gameState.inning}
-              </div>
-            </div>
             {primaryReliever && (
               <div className="count-boxes" aria-label="Count summary">
                 <div>
@@ -440,16 +258,6 @@ function App() {
                 </div>
               </div>
             )}
-          </div>
-
-          <div className="ticker" role="status" aria-live="polite">
-            <div className="ticker-meta">
-              <span className="mini-dot" aria-hidden />
-              <span className="ticker-label">In-game update</span>
-            </div>
-            <div className="ticker-body">
-              <p className="muted">{gameState.lastPlay}</p>
-            </div>
           </div>
 
           <div className="table-wrapper">
@@ -471,7 +279,7 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {displayedRelievers.map((reliever, index) => (
+                {relievers.map((reliever, index) => (
                   <tr key={reliever.name} className={index === 0 ? "accent-row" : index === 1 ? "secondary-row" : ""}>
                     <td className="narrow">
                       <span className="selector" aria-hidden />

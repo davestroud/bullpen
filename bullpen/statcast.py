@@ -101,10 +101,10 @@ def summarize_relievers(data: "pd.DataFrame", *, end_date: date) -> List[dict]:
         total_bases = int(
             frame["events"].map(TOTAL_BASE_VALUE).fillna(0).astype(int).sum()
         )
-        runs_batted_in = int((frame["rbi"] if "rbi" in frame.columns else pd.Series(0, index=frame.index)).fillna(0).sum())
+        runs_batted_in = int(frame.get("rbi", 0).fillna(0).sum())
 
-        balls = int((frame.get("type", pd.Series(dtype=str)) == "B").sum())
-        strikes = int((frame.get("type", pd.Series(dtype=str)) == "S").sum())
+        balls = int((frame.get("type") == "B").sum())
+        strikes = int((frame.get("type") == "S").sum())
 
         era = round((runs * 9.0) / innings, 2) if innings else 0.0
         whip = round((walks + hits) / innings, 3) if innings else 0.0
